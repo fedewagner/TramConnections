@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Morgental Live Departures</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #0d1117;
+        color: #e6edf3;
+        margin: 0;
+        padding: 20px;
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 5px;
+        color: #58a6ff;
+    }
+    #updated {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #8b949e;
+        margin-bottom: 20px;
+    }
+    #board {
+        font-size: 1.4rem;
+        margin-top: 20px;
+    }
+    .entry {
+        padding: 15px 8px;
+        border-bottom: 1px solid #21262d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .badge {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-weight: bold;
+        color: #000;
+        min-width: 60px;
+        text-align: center;
+        font-size: 1.1rem;
+    }
+    .tram { background: #00b5e2; }
+    .bus  { background: #f2b200; }
+    .dest { font-size: 1.2rem; }
+    .right {
+        text-align: right;
+    }
+    .time {
+        color: #ffd700;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+</style>
+</head>
+<body>
+
+<h1>Morgental Live Departures</h1>
+<div id="updated">Loading…</div>
+<div id="board">Loading…</div>
+
+<script>
+function minutesUntil(departureTime) {
+    const now = new Date();
+    const dep = new Date(departureTime);
+    const diffMs = dep - now;
+    const diffMin = Math.round(diffMs / 60000);
+
+    if (diffMin <= 0) return "now";
+    if (diffMin === 1) return "1 min";
+    return `${diffMin} min`;
+}
+
+async function loadDepartures() {
+    const url = "https://transport.opendata.ch/v1/stationboard?station=Morgental&limit=10";
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const board = document.getElementById("board");
+        board.innerHTML = "";
+
+        data.stationboard.forEach(item => {
+            const depTime = item.stop.departure;
+            const diffText = minutesUntil(depTime);
+
+            const category = item.category;
+            const number = item.number;
+
+            let className = "badge";
+            if (category.toLowerCase().includes("tram")) className += " tram";
+            else className += " bus";
+
+            board.innerHTML += `
+                <div class="entry">
+                    <div class="left">
+                        <div class="${className}">${category} ${number}</div>
+                        <div class="dest">→ ${item.to}</div>
+                    </div>
+                    <div class="right">
+                        <div class="time">${diffText}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById("updated").innerText =
+            "Last updated: " + new Date().toLocaleTimeString();
+
+    } catch (e) {
+        document.getElementById("board").innerHTML =
+            "<div style='color: red;'>Error loading data.</div>";
+    }
+}
+
+loadDepartures();
+setInterval(loadDepartures, 30000);
+</script>
+
+</body>
+</html>
